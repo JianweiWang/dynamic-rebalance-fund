@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 动态基金再平衡系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-chart-line me-2"></i>
+                动态基金再平衡系统
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- 操作面板 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-cogs me-2"></i>
+                            操作面板
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6 col-lg-3">
+                                <button class="btn btn-outline-primary w-100" onclick="loadBuckets()">
+                                    <i class="fas fa-refresh me-2"></i>
+                                    刷新数据
+                                </button>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <button class="btn btn-success w-100" onclick="showAddFundModal()">
+                                    <i class="fas fa-plus me-2"></i>
+                                    添加基金
+                                </button>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <button class="btn btn-warning w-100" onclick="showRebalanceModal()">
+                                    <i class="fas fa-balance-scale me-2"></i>
+                                    执行再平衡
+                                </button>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <button class="btn btn-info w-100" onclick="showHistoryModal()">
+                                    <i class="fas fa-history me-2"></i>
+                                    历史记录
+                                </button>
+                            </div>
+                            <div class="col-md-6 col-lg-4">
+                                <div class="input-group">
+                                    <input type="number" id="thresholdInput" class="form-control" 
+                                           placeholder="阈值(0.05)" step="0.01" min="0" max="1" value="0.05">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 基金配置展示 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-folder-open me-2"></i>
+                            基金配置
+                        </h5>
+                        <span class="badge bg-info" id="totalValue">总市值: 0.00万</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="bucketsContainer">
+                            <!-- 基金配置动态加载 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 再平衡结果 -->
+        <div class="row mt-4" id="rebalanceResultSection" style="display: none;">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-clipboard-list me-2"></i>
+                            调仓清单
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>基金名称</th>
+                                        <th>基金代码</th>
+                                        <th>当前市值</th>
+                                        <th>目标市值</th>
+                                        <th>调整金额</th>
+                                        <th>操作建议</th>
+                                        <th>详细原因</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rebalanceResults">
+                                    <!-- 再平衡结果动态加载 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加基金模态框 -->
+    <div class="modal fade" id="addFundModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        添加基金
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addFundForm">
+                        <div class="mb-3">
+                            <label class="form-label">选择桶</label>
+                            <select class="form-select" id="bucketSelect" required>
+                                <!-- 动态加载桶选项 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">基金名称</label>
+                            <input type="text" class="form-control" id="fundName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">基金代码</label>
+                            <input type="text" class="form-control" id="fundCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">当前市值(万元)</label>
+                            <input type="number" class="form-control" id="fundCurrent" step="0.01" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">权重(0-1)</label>
+                            <input type="number" class="form-control" id="fundWeight" step="0.01" min="0" max="1" required>
+                            <div class="form-text">在所选桶内的权重分配</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addFund()">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑基金模态框 -->
+    <div class="modal fade" id="editFundModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>
+                        编辑基金
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editFundForm">
+                        <input type="hidden" id="editBucketIndex">
+                        <input type="hidden" id="editFundIndex">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">基金名称</label>
+                            <input type="text" class="form-control" id="editFundName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">基金代码</label>
+                            <input type="text" class="form-control" id="editFundCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">当前市值(万元)</label>
+                            <input type="number" class="form-control" id="editFundCurrent" step="0.01" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">权重(0-1)</label>
+                            <input type="number" class="form-control" id="editFundWeight" step="0.01" min="0" max="1" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="updateFund()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div class="position-fixed top-50 start-50 translate-middle" id="loadingIndicator" style="display: none; z-index: 9999;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+    </div>
+
+    <!-- 历史记录模态框 -->
+    <div class="modal fade" id="historyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-history me-2"></i>
+                        再平衡历史记录
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="historyContent">
+                        <!-- 历史记录动态加载 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史详情模态框 -->
+    <div class="modal fade" id="historyDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-clipboard-list me-2"></i>
+                        再平衡详情
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="historyDetailContent">
+                        <!-- 详情内容动态加载 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 消息 -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="messageToast" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-info-circle me-2 text-primary"></i>
+                <strong class="me-auto">系统消息</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                <!-- 消息内容 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
