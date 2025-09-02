@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Fund Rebalance Application
+  fund-rebalance:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: fund-rebalance-app
+    restart: unless-stopped
+    environment:
+      - GIN_MODE=release
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - fund-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.docker.compose.service=fund-rebalance"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: fund-rebalance-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      fund-rebalance:
+        condition: service_healthy
+    networks:
+      - fund-network
+    labels:
+      - "com.docker.compose.service=nginx"
+
+networks:
+  fund-network:
+    driver: bridge
+    name: fund-rebalance-network
+
+volumes:
+  fund_data:
+    driver: local

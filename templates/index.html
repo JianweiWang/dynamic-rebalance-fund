@@ -12,14 +12,106 @@
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="#">
+            <a class="navbar-brand fw-bold" href="/">
                 <i class="fas fa-chart-line me-2"></i>
                 动态基金再平衡系统
             </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-white" href="/">
+                    <i class="fas fa-briefcase me-1"></i>
+                    投资组合概览
+                </a>
+            </div>
         </div>
     </nav>
 
     <div class="container mt-4">
+        <!-- 投资组合信息 -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-1" id="portfolioTitle">
+                            <i class="fas fa-folder-open me-2 text-primary"></i>
+                            <span id="portfolioName">加载中...</span>
+                        </h4>
+                        <p class="text-muted mb-0" id="portfolioDescription">正在加载投资组合信息...</p>
+                    </div>
+                    <div>
+                        <a href="/" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            返回概览
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 投资组合收益表现 -->
+        <div class="row mb-4" id="portfolioPerformanceSection" style="display: none;">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            投资组合收益表现
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-md-6 col-lg-3">
+                                <div class="performance-metric">
+                                    <div class="metric-icon bg-primary text-white">
+                                        <i class="fas fa-coins"></i>
+                                    </div>
+                                    <div class="metric-content">
+                                        <div class="metric-label">初始投资</div>
+                                        <div class="metric-value" id="totalInvestment">--</div>
+                                        <div class="metric-unit">元</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="performance-metric">
+                                    <div class="metric-icon bg-success text-white">
+                                        <i class="fas fa-wallet"></i>
+                                    </div>
+                                    <div class="metric-content">
+                                        <div class="metric-label">当前市值</div>
+                                        <div class="metric-value" id="currentValue">--</div>
+                                        <div class="metric-unit">元</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="performance-metric">
+                                    <div class="metric-icon text-white" id="returnIcon">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </div>
+                                    <div class="metric-content">
+                                        <div class="metric-label">总收益</div>
+                                        <div class="metric-value" id="totalReturn">--</div>
+                                        <div class="metric-unit">元 (<span id="returnRate">--%</span>)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <div class="performance-metric">
+                                    <div class="metric-icon bg-info text-white">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <div class="metric-content">
+                                        <div class="metric-label">年化收益率</div>
+                                        <div class="metric-value" id="annualizedReturn">--</div>
+                                        <div class="metric-unit">持有<span id="daysHeld">--</span>天</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- 操作面板 -->
         <div class="row mb-4">
             <div class="col-12">
@@ -33,7 +125,7 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6 col-lg-3">
-                                <button class="btn btn-outline-primary w-100" onclick="loadBuckets()">
+                                <button class="btn btn-outline-primary w-100" onclick="refreshData()">
                                     <i class="fas fa-refresh me-2"></i>
                                     刷新数据
                                 </button>
@@ -78,7 +170,7 @@
                             <i class="fas fa-folder-open me-2"></i>
                             基金配置
                         </h5>
-                        <span class="badge bg-info" id="totalValue">总市值: 0.00万</span>
+                        <span class="badge bg-info" id="totalValue">总市值: 0.00元</span>
                     </div>
                     <div class="card-body p-0">
                         <div id="bucketsContainer">
@@ -152,7 +244,7 @@
                             <input type="text" class="form-control" id="fundCode" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">当前市值(万元)</label>
+                            <label class="form-label">当前市值(元)</label>
                             <input type="number" class="form-control" id="fundCurrent" step="0.01" min="0" required>
                         </div>
                         <div class="mb-3">
@@ -195,7 +287,7 @@
                             <input type="text" class="form-control" id="editFundCode" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">当前市值(万元)</label>
+                            <label class="form-label">当前市值(元)</label>
                             <input type="number" class="form-control" id="editFundCurrent" step="0.01" min="0" required>
                         </div>
                         <div class="mb-3">

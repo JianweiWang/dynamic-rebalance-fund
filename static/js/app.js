@@ -1,9 +1,24 @@
 // 全局变量
 let currentBuckets = [];
+let currentPortfolioId = null;
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', function() {
-    loadBuckets();
+    // 从URL获取投资组合ID
+    const urlPath = window.location.pathname;
+    const pathParts = urlPath.split('/');
+    
+    if (pathParts.length >= 3 && pathParts[1] === 'portfolios') {
+        currentPortfolioId = parseInt(pathParts[2]);
+        if (currentPortfolioId) {
+            loadPortfolioInfo();
+            loadBucketsByPortfolio();
+        } else {
+            loadBuckets(); // 向后兼容
+        }
+    } else {
+        loadBuckets(); // 向后兼容
+    }
 });
 
 // API调用函数
@@ -65,6 +80,109 @@ async function apiCall(url, method = 'GET', data = null) {
     }
 }
 
+// 加载投资组合信息
+async function loadPortfolioInfo() {
+    if (!currentPortfolioId) return;
+    
+    try {
+        const result = await apiCall(`/api/portfolios/${currentPortfolioId}`);
+        const portfolio = result.data;
+        
+        document.getElementById('portfolioName').textContent = portfolio.name;
+        document.getElementById('portfolioDescription').textContent = portfolio.description || '暂无描述';
+        
+        // 更新页面标题
+        document.title = `${portfolio.name} - 动态基金再平衡系统`;
+        
+        // 加载投资组合收益表现
+        await loadPortfolioPerformance();
+        
+    } catch (error) {
+        console.error('加载投资组合信息失败:', error);
+        document.getElementById('portfolioName').textContent = '投资组合加载失败';
+        document.getElementById('portfolioDescription').textContent = '无法获取投资组合信息';
+    }
+}
+
+// 加载投资组合收益表现
+async function loadPortfolioPerformance() {
+    if (!currentPortfolioId) return;
+    
+    try {
+        const result = await apiCall(`/api/portfolios/${currentPortfolioId}/performance`);
+        const performance = result.data;
+        
+        // 显示收益表现卡片
+        document.getElementById('portfolioPerformanceSection').style.display = 'block';
+        
+        // 更新数据
+        document.getElementById('totalInvestment').textContent = performance.total_investment.toLocaleString();
+        document.getElementById('currentValue').textContent = performance.current_value.toLocaleString();
+        
+        // 设置总收益金额和颜色
+        const totalReturnElement = document.getElementById('totalReturn');
+        const returnRateElement = document.getElementById('returnRate');
+        const returnIconElement = document.getElementById('returnIcon');
+        
+        totalReturnElement.textContent = performance.total_return.toLocaleString();
+        returnRateElement.textContent = performance.return_rate.toFixed(2) + '%';
+        
+        // 根据收益情况设置颜色和图标
+        if (performance.total_return >= 0) {
+            totalReturnElement.classList.add('positive');
+            totalReturnElement.classList.remove('negative');
+            returnIconElement.className = 'metric-icon bg-gain text-white';
+            returnIconElement.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        } else {
+            totalReturnElement.classList.add('negative');
+            totalReturnElement.classList.remove('positive');
+            returnIconElement.className = 'metric-icon bg-loss text-white';
+            returnIconElement.innerHTML = '<i class="fas fa-arrow-down"></i>';
+        }
+        
+        // 年化收益率
+        const annualizedReturnElement = document.getElementById('annualizedReturn');
+        annualizedReturnElement.textContent = performance.annualized_return.toFixed(2) + '%';
+        
+        if (performance.annualized_return >= 0) {
+            annualizedReturnElement.classList.add('positive');
+            annualizedReturnElement.classList.remove('negative');
+        } else {
+            annualizedReturnElement.classList.add('negative');
+            annualizedReturnElement.classList.remove('positive');
+        }
+        
+        // 持有天数
+        document.getElementById('daysHeld').textContent = performance.days_held;
+        
+    } catch (error) {
+        console.error('加载投资组合收益表现失败:', error);
+        // 隐藏收益表现卡片
+        document.getElementById('portfolioPerformanceSection').style.display = 'none';
+    }
+}
+
+// 加载指定投资组合的基金数据
+async function loadBucketsByPortfolio() {
+    if (!currentPortfolioId) {
+        loadBuckets();
+        return;
+    }
+    
+    try {
+        const result = await apiCall(`/api/portfolios/${currentPortfolioId}/buckets`);
+        currentBuckets = result.data;
+        renderBuckets();
+        updateTotalValue();
+        populateBucketSelect();
+        
+        // 刷新收益表现数据
+        await loadPortfolioPerformance();
+    } catch (error) {
+        console.error('加载投资组合数据失败:', error);
+    }
+}
+
 // 加载基金数据
 async function loadBuckets() {
     try {
@@ -75,6 +193,15 @@ async function loadBuckets() {
         populateBucketSelect();
     } catch (error) {
         console.error('加载数据失败:', error);
+    }
+}
+
+// 统一的数据刷新函数
+function refreshData() {
+    if (currentPortfolioId) {
+        loadBucketsByPortfolio();
+    } else {
+        loadBuckets();
     }
 }
 
@@ -133,7 +260,7 @@ function renderFund(fund, bucketIndex, fundIndex) {
             <div class="fund-metrics">
                 <div class="metric">
                     <div class="metric-label">当前市值</div>
-                    <div class="metric-value">${fund.current.toFixed(2)}万</div>
+                    <div class="metric-value">${(fund.current * 10000).toLocaleString()}元</div>
                 </div>
                 <div class="metric">
                     <div class="metric-label">权重</div>
@@ -162,7 +289,9 @@ function updateTotalValue() {
         });
     });
     
-    document.getElementById('totalValue').textContent = `总市值: ${total.toFixed(2)}万`;
+    // 转换为元并显示
+    const totalInYuan = total * 10000;
+    document.getElementById('totalValue').textContent = `总市值: ${totalInYuan.toLocaleString()}元`;
 }
 
 // 填充桶选择器
@@ -204,13 +333,33 @@ async function addFund() {
     }
 
     try {
-        const result = await apiCall('/api/funds', 'POST', {
-            bucket_index: bucketIndex,
-            name: name,
-            code: code,
-            current: current,
-            weight: weight
-        });
+        // 根据当前上下文选择API端点
+        let endpoint, requestData;
+        
+        if (currentPortfolioId) {
+            // 新的投资组合系统：发送bucket_id
+            const selectedBucket = currentBuckets[bucketIndex];
+            endpoint = '/api/funds';
+            requestData = {
+                bucket_id: selectedBucket.id,  // 使用实际的bucket ID
+                name: name,
+                code: code,
+                current: current / 10000, // 转换为万元存储
+                weight: weight
+            };
+        } else {
+            // 向后兼容：使用旧的bucket_index方式
+            endpoint = '/api/funds';
+            requestData = {
+                bucket_index: bucketIndex,
+                name: name,
+                code: code,
+                current: current / 10000, // 转换为万元存储
+                weight: weight
+            };
+        }
+        
+        const result = await apiCall(endpoint, 'POST', requestData);
 
         currentBuckets = result.data;
         renderBuckets();
@@ -235,7 +384,7 @@ function editFund(bucketIndex, fundIndex) {
     document.getElementById('editFundIndex').value = fundIndex;
     document.getElementById('editFundName').value = fund.name;
     document.getElementById('editFundCode').value = fund.code;
-    document.getElementById('editFundCurrent').value = fund.current;
+    document.getElementById('editFundCurrent').value = fund.current * 10000; // 转换为元显示
     document.getElementById('editFundWeight').value = fund.weight;
     
     const modal = new bootstrap.Modal(document.getElementById('editFundModal'));
@@ -266,17 +415,33 @@ async function updateFund() {
         const updates = [
             { field: 'name', value: name },
             { field: 'code', value: code },
-            { field: 'current', value: current.toString() },
+            { field: 'current', value: (current / 10000).toString() }, // 转换为万元存储
             { field: 'weight', value: weight.toString() }
         ];
 
         for (const update of updates) {
-            const result = await apiCall('/api/funds', 'PUT', {
-                bucket_index: bucketIndex,
-                fund_index: fundIndex,
-                field: update.field,
-                value: update.value
-            });
+            // 根据当前上下文选择请求数据
+            let requestData;
+            if (currentPortfolioId) {
+                // 新的投资组合系统：使用fund_id
+                const selectedBucket = currentBuckets[bucketIndex];
+                const selectedFund = selectedBucket.funds[fundIndex];
+                requestData = {
+                    fund_id: selectedFund.id,
+                    field: update.field,
+                    value: update.value
+                };
+            } else {
+                // 向后兼容：使用bucket_index和fund_index
+                requestData = {
+                    bucket_index: bucketIndex,
+                    fund_index: fundIndex,
+                    field: update.field,
+                    value: update.value
+                };
+            }
+            
+            const result = await apiCall('/api/funds', 'PUT', requestData);
             currentBuckets = result.data;
         }
 
@@ -302,10 +467,22 @@ async function deleteFund(bucketIndex, fundIndex) {
     }
 
     try {
-        const result = await apiCall('/api/funds', 'DELETE', {
-            bucket_index: bucketIndex,
-            fund_index: fundIndex
-        });
+        // 根据当前上下文选择请求数据
+        let requestData;
+        if (currentPortfolioId) {
+            // 新的投资组合系统：使用fund_id
+            requestData = {
+                fund_id: fund.id
+            };
+        } else {
+            // 向后兼容：使用bucket_index和fund_index
+            requestData = {
+                bucket_index: bucketIndex,
+                fund_index: fundIndex
+            };
+        }
+        
+        const result = await apiCall('/api/funds', 'DELETE', requestData);
 
         currentBuckets = result.data;
         renderBuckets();
@@ -326,9 +503,24 @@ function showRebalanceModal() {
 // 执行再平衡
 async function performRebalance(threshold = 0.05) {
     try {
-        const result = await apiCall('/api/rebalance', 'POST', {
-            threshold: threshold
-        });
+        // 根据当前上下文选择API端点
+        let endpoint, requestData;
+        
+        if (currentPortfolioId) {
+            // 新的投资组合系统：使用投资组合特定的端点
+            endpoint = `/api/portfolios/${currentPortfolioId}/rebalance`;
+            requestData = {
+                threshold: threshold
+            };
+        } else {
+            // 向后兼容：使用通用的再平衡端点
+            endpoint = '/api/rebalance';
+            requestData = {
+                threshold: threshold
+            };
+        }
+        
+        const result = await apiCall(endpoint, 'POST', requestData);
 
         const rebalanceData = result.data;
         renderRebalanceResults(rebalanceData);
@@ -341,7 +533,11 @@ async function performRebalance(threshold = 0.05) {
             behavior: 'smooth' 
         });
         
-        showMessage('再平衡分析完成', 'success');
+        if (currentPortfolioId) {
+            showMessage('投资组合再平衡分析完成', 'success');
+        } else {
+            showMessage('再平衡分析完成', 'success');
+        }
     } catch (error) {
         console.error('再平衡分析失败:', error);
     }

@@ -1,0 +1,38 @@
+[Unit]
+Description=Fund Rebalance Application
+Documentation=https://github.com/your-org/dynamic-rebalance-fund
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/fund-rebalance
+ExecStart=/usr/local/bin/docker-compose -f docker-compose.prod.yml up -d
+ExecStop=/usr/local/bin/docker-compose -f docker-compose.prod.yml down --timeout 30
+ExecReload=/usr/local/bin/docker-compose -f docker-compose.prod.yml restart
+TimeoutStartSec=300
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=10
+User=root
+Group=root
+
+# Environment variables
+Environment=COMPOSE_PROJECT_NAME=fund-rebalance
+Environment=DOCKER_CLIENT_TIMEOUT=120
+Environment=COMPOSE_HTTP_TIMEOUT=120
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/fund-rebalance
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fund-rebalance
+
+[Install]
+WantedBy=multi-user.target

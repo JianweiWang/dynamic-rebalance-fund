@@ -8,6 +8,7 @@ import (
 )
 
 type Fund struct {
+	ID      int     `json:"id,omitempty"` // 数据库ID（需要时才传递）
 	Name    string  `json:"name"`
 	Code    string  `json:"code"`
 	Current float64 `json:"current"`
@@ -19,6 +20,7 @@ type Fund struct {
 }
 
 type Bucket struct {
+	ID         int     `json:"id,omitempty"` // 数据库ID（需要时才传递）
 	Name       string  `json:"name"`
 	TargetRate float64 `json:"target_rate"`
 	Funds      []Fund  `json:"funds"`
@@ -338,17 +340,17 @@ func performRebalanceCLI(buckets []Bucket) {
 func runCLI() {
 	// 初始化默认组合
 	clieBuckets := []Bucket{
-		{"短期桶（货币基金）", 0.10, []Fund{
-			{"易方达货币A", "000009", 20, 1.0, 0, 0, "", ""},
+		{Name: "短期桶（货币基金）", TargetRate: 0.10, Funds: []Fund{
+			{Name: "现金管理", Code: "CASH001", Current: 20, Weight: 1.0},
 		}},
-		{"中期桶（债券基金）", 0.30, []Fund{
-			{"广发国开债7-10A", "003375", 50, 0.5, 0, 0, "", ""},
-			{"博时信用债纯债A", "050026", 40, 0.5, 0, 0, "", ""},
+		{Name: "中期桶（债券基金）", TargetRate: 0.30, Funds: []Fund{
+			{Name: "广发国开债7-10A", Code: "003375", Current: 50, Weight: 0.5},
+			{Name: "博时信用债纯债A", Code: "050026", Current: 40, Weight: 0.5},
 		}},
-		{"长期桶（股票基金）", 0.60, []Fund{
-			{"易方达沪深300ETF联接A", "110020", 100, 0.4, 0, 0, "", ""},
-			{"南方中证500ETF联接A", "160119", 80, 0.3, 0, 0, "", ""},
-			{"汇添富海外互联网50ETF", "006327", 60, 0.3, 0, 0, "", ""},
+		{Name: "长期桶（股票基金）", TargetRate: 0.60, Funds: []Fund{
+			{Name: "易方达沪深300ETF联接A", Code: "110020", Current: 100, Weight: 0.4},
+			{Name: "南方中证500ETF联接A", Code: "160119", Current: 80, Weight: 0.3},
+			{Name: "汇添富海外互联网50ETF", Code: "006327", Current: 60, Weight: 0.3},
 		}},
 	}
 

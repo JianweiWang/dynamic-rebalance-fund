@@ -189,6 +189,125 @@ body {
     transition: width 0.3s ease;
 }
 
+/* 投资组合卡片样式 */
+.portfolio-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.portfolio-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 投资组合绩效样式 */
+.performance-metric {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    transition: box-shadow 0.2s ease;
+}
+
+.performance-metric:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+}
+
+.metric-icon.bg-gain {
+    background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+}
+
+.metric-icon.bg-loss {
+    background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+}
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-content .metric-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.metric-content .metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.125rem;
+    line-height: 1.2;
+}
+
+.metric-content .metric-unit {
+    font-size: 0.75rem;
+    color: #8c8c8c;
+    font-weight: 500;
+}
+
+.metric-value.positive {
+    color: #52c41a;
+}
+
+.metric-value.negative {
+    color: #ff4d4f;
+}
+
+@media (max-width: 768px) {
+    .performance-metric {
+        padding: 0.75rem;
+    }
+    
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+        margin-right: 0.75rem;
+    }
+    
+    .metric-content .metric-value {
+        font-size: 1.25rem;
+    }
+}
+
+.portfolio-stats {
+    margin-top: 1rem;
+}
+
+.stat-item {
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
     .fund-metrics {
